@@ -1,10 +1,10 @@
-import {useEffect, useState} from 'preact/hooks'
+import {useEffect, useRef, useState} from 'preact/hooks'
 import md5 from 'crypto-js/hmac-md5'
 
 type Status = 'pending' | 'downloading' | 'finished' | 'error'
 const PAGE_SIZE = 100
 
-function debug (...message: unknown[]) {
+function debug(...message: unknown[]) {
   console.log(`[dd]: ${message.join(' ')}`)
 }
 
@@ -166,6 +166,8 @@ export function useDownload(): Download {
     programs: [],
   })
 
+  const reference = useRef<Download>();
+
   const handleError = (err: Error) => {
     updateDownload({
       ...download,
@@ -175,9 +177,9 @@ export function useDownload(): Download {
   }
 
   const handleUpdatePrograms = (id: string, info: { status?: Status, edition?: { url: string, format: string } }) => {
-    updateDownload({
-      ...download,
-      programs: download.programs.map(d => {
+    const result = {
+      ...reference.current,
+      programs: reference.current.programs.map(d => {
         if (d.id === id) {
           return {
             ...d,
@@ -186,7 +188,9 @@ export function useDownload(): Download {
         }
         return d
       })
-    })
+    }
+    updateDownload(result)
+    reference.current = result
   }
 
   useEffect(() => {
@@ -199,22 +203,24 @@ export function useDownload(): Download {
       try {
         const token = await getToken(id)
         debug('token', token)
-        const channelId = '335696' // getChannelId()
+        const channelId = getChannelId()
         debug('channelId', token)
 
         const info = await getChannelInfo(channelId)
         debug('fetch info success')
         const programs = await getPrograms(channelId, info.count)
         debug('fetch programs success')
-        updateDownload({
+        const result = {
           ...download,
           loading: false,
           programs: programs.map(d => ({
             ...d,
-            url: '',
-            status: 'pending'
+            status: 'pending' as Status
           }))
-        })
+        }
+        updateDownload(result)
+
+        reference.current = result
 
         await programs.reduce<Promise<void>>(async (acc, program) => {
           await acc
@@ -242,4 +248,37 @@ export function useDownload(): Download {
     })()
   }, [])
   return download
+}
+
+export async function handleDownloadProgram() {
+  const reg = /channels\/(\d+)\/programs\/(\d+)/
+  const match = location.href.match(reg)
+  const handleError = (err: Error | string) => {
+    if (typeof err === 'string') {
+      alert(err)
+    } else {
+      alert(err.message)
+    }
+  }
+  if (!match) {
+    handleError('链接地址解析失败')
+    return
+  }
+  const channelId = match[1]
+  const programId = match[2]
+  try {
+    alert('开始下载')
+    const id = getId()
+    if (!id) {
+      handleError('获取 qingting_id 失败, 请检查是否已登录')
+      return
+    }
+    const token = await getToken(id)
+    const edition = await getDownloadUrl(channelId, programId, id, token)
+    const div = document.querySelector('.info .title')
+    const name = `${div?.innerHTML || `${channelId}-${programId}`}`
+    await downloadFile(name, edition)
+  } catch (e) {
+    handleError(e)
+  }
 }

@@ -4,9 +4,7 @@ import IconButton from '@mui/material/IconButton';import Popover from '@mui/mate
 import DownloadIcon from '@mui/icons-material/Download'
 
 import { Panel } from './panel'
-import {useDownload} from "./download";
-
-const Id = '_qtfm_downloader'
+import {handleDownloadProgram, useDownload} from "./download";
 
 export function App() {
   const download = useDownload()
@@ -25,7 +23,7 @@ export function App() {
   return (
     <div>
       <IconButton size="large" color={ anchorEl ? 'secondary' : 'default' } onClick={handleClick}>
-        <DownloadIcon />
+        <DownloadIcon sx={{ color: '#fff' }}/>
       </IconButton>
       <Popover
         open={open}
@@ -49,6 +47,24 @@ export function App() {
 export function Renderer(el: Element) {
   render(<App/>, el);
 }
+// Renderer(document.getElementById('app'));
+
+function createDownload () {
+  if (/channels\/\d+\/programs\/\d+/.test(location.href)) {
+    handleDownloadProgram().then()
+    return
+  }
+  const container = document.createElement('div')
+  container.style.position = 'fixed'
+  container.style.right = '100px'
+  container.style.bottom = '100px'
+  container.style.zIndex = '9999'
+  container.style.background = '#757de8'
+  container.style.borderRadius = '100%'
+  container.style.boxShadow = 'rgba(0, 0, 0, 0.2) 0px 5px 5px -3px, rgba(0, 0, 0, 0.14) 0px 8px 10px 1px, rgba(0, 0, 0, 0.12) 0px 3px 14px 2px'
+  document.body.append(container)
+  Renderer(container)
+}
 
 (() => {
   const downloadButton = document.querySelector('.actionRoot .downloadBtn')
@@ -58,35 +74,9 @@ export function Renderer(el: Element) {
   cloned.addEventListener('click', () => {
     if (init) return
     init = true
-    const el = document.getElementById(Id)
-    if (!el) return
-    el.classList.add('active')
-    Renderer(el)
+    createDownload()
   })
-  const container = document.createElement('div')
-  container.style.display = 'inline-block'
-  container.innerHTML = `
-<div id="${Id}"></div>
-<style>
-#_qtfm_downloader {
-  opacity: 0;
-  z-index: -1;
-  transition: all .3s;
-}
-#_qtfm_downloader.active {
-    position: fixed;
-    bottom: 50px;
-    right: 50px;
-    z-index: 999999;
-    width: 50px;
-    height: 50px;
-    background: red;
-    opacity: 1;
-    transform: translate3d(0,0,-1px);
-  }  
-</style>
-  `
-  container.append(cloned)
-  downloadButton.parentNode.insertBefore(container, downloadButton)
+
+  downloadButton.parentNode.insertBefore(cloned, downloadButton)
   downloadButton.parentNode.removeChild(downloadButton)
 })()
