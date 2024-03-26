@@ -202,17 +202,25 @@ export function useDownload(): Download {
       handleError(new Error('获取 qingting_id 失败, 请检查是否已登录'))
       return
     }
+    const single = /channels\/\d+\/programs\/\d+/.test(location.href);
     (async () => {
       try {
         const token = await getToken(id)
         debug('token', token)
         const channelId = getChannelId()
         debug('channelId', token)
-
-        const info = await getChannelInfo(channelId)
-        debug('fetch info success')
-        const programs = await getPrograms(channelId, info.count)
-        debug('fetch programs success')
+        let programs: Array<{ id: string, title: string }>
+        if (!single) {
+          const info = await getChannelInfo(channelId)
+          debug('fetch info success')
+          programs = await getPrograms(channelId, info.count)
+          debug('fetch programs success')
+        } else {
+          programs = [
+            getProgram()
+          ]
+          debug('fetch program from url')
+        }
         const result = {
           ...download,
           loading: false,
@@ -257,35 +265,18 @@ export function useDownload(): Download {
   return download
 }
 
-export async function handleDownloadProgram() {
+function getProgram() {
   const reg = /channels\/(\d+)\/programs\/(\d+)/
   const match = location.href.match(reg)
-  const handleError = (err: Error | string) => {
-    if (typeof err === 'string') {
-      alert(err)
-    } else {
-      alert(err.message)
-    }
-  }
   if (!match) {
-    handleError('链接地址解析失败')
-    return
+    throw new Error('链接地址解析失败')
   }
   const channelId = match[1]
   const programId = match[2]
-  try {
-    alert('开始下载')
-    const id = getId()
-    if (!id) {
-      handleError('获取 qingting_id 失败, 请检查是否已登录')
-      return
-    }
-    const token = await getToken(id)
-    const edition = await getDownloadUrl(channelId, programId, id, token)
-    const div = document.querySelector('.info .title')
-    const name = `${div?.innerHTML || `${channelId}-${programId}`}`
-    await downloadFile(name, edition)
-  } catch (e) {
-    handleError(e)
+  const div = document.querySelector('.info .title')
+  const name = `${div?.innerHTML || `${channelId}-${programId}`}`
+  return {
+    id: programId,
+    title: name
   }
 }
