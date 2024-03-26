@@ -5,6 +5,7 @@
 	"description": "A downloader plugin for qtfm",
 	"license": "MIT",
 	"author": "oustn",
+	"repository": "https://github.com/oustn/qt-monkey",
 	"scripts": {
 		"dev": "vite",
 		"build": "vite build",

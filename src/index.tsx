@@ -65,7 +65,7 @@ export function App() {
         {hasError && <CloseIcon sx={{ color: '#fff' }}/>}
         {loading && <DownloadIcon sx={{ color: '#fff' }}/>}
       </Fab>
-      {loading && (
+      {loading && !open && (
         <CircularProgress
           size={68}
           sx={{

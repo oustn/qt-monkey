@@ -12,7 +12,8 @@ export default defineConfig({
 // @namespace    https://tampermonkey.net/
 // @version      ${packageJson.version}
 // @description  ${packageJson.description}
-// @author       ${packageJson.author}
+// @author       ${packageJson.author}(@github)
+// @source       ${packageJson.repository}
 // @match        *://*.qtfm.cn/channels/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=qtfm.cn
 // @grant        GM.xmlHttpRequest
@@ -30,7 +31,12 @@ export default defineConfig({
 		port: 3000,
 	},
 	build: {
-		cssCodeSplit: false
+		cssCodeSplit: false,
+		rollupOptions: {
+			output: {
+				entryFileNames: 'index.js',
+			}
+		}
 	},
 	esbuild: {
 		legalComments: 'none'
