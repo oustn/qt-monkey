@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'preact/hooks'
 import md5 from 'crypto-js/hmac-md5'
+import pLimit from 'p-limit';
 
 type Status = 'pending' | 'downloading' | 'finished' | 'error'
 const PAGE_SIZE = 100
@@ -7,6 +8,8 @@ const PAGE_SIZE = 100
 function debug(...message: unknown[]) {
   console.log(`[dd]: ${message.join(' ')}`)
 }
+
+declare var CON: unknown
 
 declare var GM: {
   download: (options: {
@@ -222,8 +225,11 @@ export function useDownload(): Download {
 
         reference.current = result
 
-        await programs.reduce<Promise<void>>(async (acc, program) => {
-          await acc
+        debug('start download')
+        const concurrency = typeof CON === 'number' ? CON : 1
+        const limit = pLimit(concurrency);
+
+        const tasks = programs.map(program => limit(async () => {
           handleUpdatePrograms(program.id, {status: 'downloading'})
           let edition: Edition
           try {
@@ -240,7 +246,8 @@ export function useDownload(): Download {
             handleUpdatePrograms(program.id, {status: 'error'})
             return
           }
-        }, Promise.resolve())
+        }))
+        await Promise.all(tasks)
       } catch (err) {
         handleError(err)
         debug(err)
