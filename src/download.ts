@@ -32,14 +32,15 @@ async function Fetch<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T
   const res = await gmFetch(input, {
     body,
     headers: {
-      ...headers
+      ...headers,
+      'QT-App-Version': '10.7.9.0',
     },
     method
   })
 
   const {errorno, errormsg, data} = JSON.parse(res.responseText) as QTResponse<T>
   if (errorno !== 0) {
-    throw new Error(input + ' ' + errormsg)
+    throw new Error(errormsg)
   }
   return data
 }
@@ -52,6 +53,7 @@ export interface Download {
     title: string,
     edition?: Edition,
     status: Status,
+    error?: string
   }>
 }
 
@@ -149,7 +151,7 @@ export async function getPrograms(channelId: string, count: number, order = 'asc
 
 async function getDownloadUrl(channelId: string, programId: string, id: string, token: string): Promise<Edition> {
   let url = `/m-bff/v1/audiostreams/channel/${channelId}/program/${programId}?access_token=${token}&device_id=${getDeviceId()}&qingting_id=${id}&type=play`
-  const sign = md5(url, 'fpMn12&38f_2e').toString();
+  const sign = md5(url, '99@b8#571(bb38_b').toString();
   url = `https://app.qtfm.cn${url}&sign=${sign}`
   const {editions} = await Fetch<{ editions: Array<{ bitrate: number, format: string, urls: Array<string> }> }>(url)
   editions.sort((a, b) => b.bitrate - a.bitrate)
@@ -179,7 +181,7 @@ export function useDownload(): Download {
     })
   }
 
-  const handleUpdatePrograms = (id: string, info: { status?: Status, edition?: { url: string, format: string } }) => {
+  const handleUpdatePrograms = (id: string, info: { status?: Status, edition?: { url: string, format: string}, error?: string }) => {
     const result = {
       ...reference.current,
       programs: reference.current.programs.map(d => {
@@ -244,7 +246,7 @@ export function useDownload(): Download {
             edition = await getDownloadUrl(channelId, program.id, id, token)
             handleUpdatePrograms(program.id, {edition})
           } catch (err) {
-            handleUpdatePrograms(program.id, {status: 'error'})
+            handleUpdatePrograms(program.id, {status: 'error', error: (err as Error).message})
             return
           }
           try {
